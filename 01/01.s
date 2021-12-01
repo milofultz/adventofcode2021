@@ -142,5 +142,5 @@ IRQ:
   rti
 
   org $3000
-  incbin "roms/aoc2021/01/ins1.raw"
-  ;incbin "roms/aoc2021/01/in.raw"
+  ;incbin "roms/aoc2021/01/ins1.raw"
+  incbin "roms/aoc2021/01/in.raw"
