@@ -62,7 +62,7 @@ ProgramComplete:
   jmp ProgramComplete
 
 CheckDepth:
-  jsr CompileCompositeDepth
+  jsr CompileCompositeDepth     ; Compile newDepth from composite of last depths
 
   lda currentDepth              ; If currentDepth is 0,
   bne ContinueCheck
@@ -76,73 +76,71 @@ CheckDepth:
   ContinueCheck:
   lda currentDepth
   sec
-  sbc newDepth
-  bcc IncCount
-  bne SkipCheck
+  sbc newDepth                  ; If newDepth MSD > currentDepth MSD,
+  bcc IncCount                  ;   Increase count
+  bne SkipCheck                 ; If newDepth MSD < currentDepth MSD, skip check
   lda currentDepth + 1
   sec
-  sbc newDepth + 1
-  bcc IncCount
-  jmp SkipCheck
+  sbc newDepth + 1              ; If newDepth LSD > currentDepth LSD,
+  bcc IncCount                  ;   Increase count
+  jmp SkipCheck                 ; Else, skip check
 
   IncCount:
-  inc count + 1
-  bne SkipCheck
-  inc count
+  inc count + 1                 ; If count LSD didn't exceed $ff,
+  bne SkipCheck                 ;   Skip to the end
+  inc count                     ; Else, increment count MSD
 
   SkipCheck:
-  jsr PlaceDepthByAge
+  jsr PlaceDepthByAge           ; Transfer new depth and old ones over one
   lda newDepth
   sta currentDepth
   lda newDepth + 1
-  sta currentDepth + 1
-  jmp GetNextChar
+  sta currentDepth + 1          ; Set currentDepth to newDepth
+  jmp GetNextChar               ; Get the next depth
 
 CompileNewDepth:
   sec                           ; Set carry bit
   sbc #$30                      ; Get decimal value of char in accumulator
   pha                           ; Push number in accumulator onto the stack
   jsr MultiplyBy10              ; Multiply newestPartial MSD by 10
-  pla
+  pla                           ; Get number from the stack
   clc
-  adc newestPartial + 1
-  sta newestPartial + 1
-  bcc ContinueCND
-  inc newestPartial
+  adc newestPartial + 1         ; Add newest number from input
+  sta newestPartial + 1         ; If newestPartial LSD didn't exceed $ff,
+  bcc ContinueCND               ;   Return from subroutine
+  inc newestPartial             ; Else, increment newestPartial MSD
   ContinueCND:
   rts
 
 CompileCompositeDepth:
-  ; Add newest
   lda newestPartial + 1
   clc
-  adc newDepth + 1
-  sta newDepth + 1
-  bcc SkipIncNdMSD
-  inc newDepth
+  adc newDepth + 1              ; Add newestPartial LSD to newDepth LSD
+  sta newDepth + 1              ; If newDepth LSD didn't exceed $ff,
+  bcc SkipIncNdMSD              ;   Continue to the MSD
+  inc newDepth                  ; Else, increment MSD
   SkipIncNdMSD:
   lda newestPartial
   clc
-  adc newDepth
+  adc newDepth                  ; Add newestPartial MSD to newDepth MSD
   sta newDepth
   ; Subtract oldest
   lda newDepth + 1
   sec
-  sbc oldPartial + 1
-  sta newDepth + 1
-  bcs SkipDecNdMSD
-  dec newDepth
+  sbc oldPartial + 1            ; Subtract oldPartial LSD from newDepth LSD
+  sta newDepth + 1              ; If newDepth LSD didn't recede below $00,
+  bcs SkipDecNdMSD              ;   Continue to the MSD
+  dec newDepth                  ; Else increment MSD
   SkipDecNdMSD:
   lda newDepth
   sec
-  sbc oldPartial
+  sbc oldPartial                ; Subtract oldPartial MSD from newDepth
   sta newDepth
 
-  rts
+  rts                           ; Return from subroutine
 
 PlaceDepthByAge:
-  ; Shift all partials over by one
-  lda midPartial
+  lda midPartial                ; Shift all partials to the next oldest slot
   sta oldPartial
   lda midPartial + 1
   sta oldPartial + 1
@@ -157,7 +155,7 @@ PlaceDepthByAge:
   lda newestPartial + 1
   sta newPartial + 1
 
-  lda #0
+  lda #0                        ; Reset newestPartial to 0
   sta newestPartial
   sta newestPartial + 1
 

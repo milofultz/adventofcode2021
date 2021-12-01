@@ -57,42 +57,42 @@ CheckDepth:
   ContinueCheck:
   lda currentDepth
   sec
-  sbc newDepth
-  bcc IncCount
-  bne SkipCheck
+  sbc newDepth                  ; If newDepth MSD > currentDepth MSD,
+  bcc IncCount                  ;   Increase count
+  bne SkipCheck                 ; If newDepth MSD < currentDepth MSD, skip check
   lda currentDepth + 1
   sec
-  sbc newDepth + 1
-  bcc IncCount
-  jmp SkipCheck
+  sbc newDepth + 1              ; If newDepth LSD > currentDepth LSD,
+  bcc IncCount                  ;   Increase count
+  jmp SkipCheck                 ; Else, skip check
 
   IncCount:
-  inc count + 1
-  bne SkipCheck
-  inc count
+  inc count + 1                 ; If count LSD didn't exceed $ff,
+  bne SkipCheck                 ;   Skip to the end
+  inc count                     ; Else, increment count MSD
 
   SkipCheck:
-  lda newDepth
+  lda newDepth                  ; Set currentDepth to newDepth
   sta currentDepth
   lda newDepth + 1
   sta currentDepth + 1
-  lda #0
+  lda #0                        ; Reset newDepth to 0
   sta newDepth
   sta newDepth + 1
-  jmp GetNextChar
+  jmp GetNextChar               ; Get the next depth
 
 CompileNewDepth:
   sec                           ; Set carry bit
   sbc #$30                      ; Get decimal value of char in accumulator
   pha                           ; Push number in accumulator onto the stack
   jsr MultiplyBy10              ; Multiply newDepth MSD by 10
-  pla
+  pla                           ; Get number from the stack
   clc
-  adc newDepth + 1
-  bcc ContinueCND
-  inc newDepth
+  adc newDepth + 1              ; Add newest number from input
+  sta newDepth + 1              ; If newDepth LSD didn't exceed $ff,
+  bcc ContinueCND               ;   Return from subroutine
+  inc newDepth                  ; Else, increment newDepth MSD
   ContinueCND:
-  sta newDepth + 1
   rts
 
 MultiplyBy10:
