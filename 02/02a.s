@@ -2,7 +2,7 @@ include "64cube.inc"
 
 enum $00                        ; Declare memory for variables
   memory rBYTE 2                ; Pointer to memory address
-  number rBYTE 2                ; Amount to be added/subtracted with operation
+  number rBYTE 1                ; Amount to be added/subtracted with operation
   operation rBYTE 1             ; Type of operation (up, down, forward)
   depth rBYTE 2                 ; Current depth
   distance rBYTE 2              ; Current distance traveled
@@ -72,14 +72,7 @@ Part1:
   CompileNumber:
   sec
   sbc #$30                      ; Set accumulator to actual number
-  pha                           ; Save current number in stack
-  jsr MultiplyBy10              ; Multiply current number by 10
-  pla
-  clc
-  adc number + 1                ; Add current number to number * 10
-  sta number + 1
-  lda #0
-  adc number                    ; Increment MSD if carry bit set
+  sta number                    ; Store number
   jmp GetNumbers                ; Get the next number
 
 IncMemory:
@@ -88,48 +81,6 @@ IncMemory:
   inc memory + 1                ; Increment MSD
   ReturnFromIncMemory:
   rts
-
-MultiplyBy10:
-  ; IN:  number
-  ; OUT: none (updated `number`)
-
-  lda #0
-  sta product + 1               ; Initialize product to 0
-  sta product
-  ldy #10                       ; Set iterator to 10
-  lda number
-  beq AddNumLSD
-
-  AddNumMSD:
-  lda number                    ; Put number MSD in accumulator
-  clc
-  adc product                   ; Sum product and number in accumulator
-
-  StoreNewProductMSD:
-  sta product                   ; Store new sum in product MSD
-  dey                           ; Decrement iterator
-  bne AddNumMSD                 ; If iterator is not zero, goto AddNumMSD
-
-  ldy #10                       ; Set iterator to 10
-
-  AddNumLSD:
-  lda number + 1                ; Put number LSD in accumulator
-  clc
-  adc product + 1               ; Sum product and number in accumulator
-  bcc StoreNewProductLSD        ; If sum didnt exceed #$ff, StoreNewProductLSD
-  inc product                   ; Else, increment product MSD
-
-  StoreNewProductLSD:
-  sta product + 1               ; Store new sum in product LSD
-  dey                           ; Decrement iterator
-  bne AddNumLSD                 ; If iterator is not zero, goto AddNumLSD
-
-  lda product
-  sta number
-  lda product + 1
-  sta number + 1                ; Store product in number
-
-  rts                           ; Return from subroutine
 
 EndOfInput:
   jmp CalculateAnswer
@@ -141,38 +92,37 @@ PerformOperation:
   cmp up                        ; Else if operation was up,
   beq GoShallower               ;   Decrease depth by number
                                 ; Else, increase distance by number
-  lda distance + 1
+  lda number
   clc
-  adc number + 1
+  adc distance + 1
   sta distance + 1
-  lda distance
-  adc number
+  lda #0
+  adc distance
   sta distance
   jmp CompleteOperation
 
   GoDeeper:
-  lda depth + 1
+  lda number
   clc
-  adc number + 1
+  adc depth + 1
   sta depth + 1
-  lda depth
-  adc number
+  lda #0
+  adc depth
   sta depth
   jmp CompleteOperation
 
   GoShallower:
   lda depth + 1
   sec
-  sbc number + 1
+  sbc number
   sta depth + 1
   lda depth
-  sbc number
+  sbc #0
   sta depth
 
   CompleteOperation:
   lda #0
-  sta number
-  sta number + 1                ; Reset current number to 0
+  sta number                    ; Reset current number to 0
   sta operation                 ; Reset operation to 0
 
   jsr IncMemory
