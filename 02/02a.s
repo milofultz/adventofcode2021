@@ -12,6 +12,10 @@ enum $00                        ; Declare memory for variables
   up rBYTE 1
 ende
 
+enum $10
+  finalAnswer rBYTE 3           ; For multiplying depth by distance
+ende
+
   org $200
   sei
   ldx #$ff                      ; Set the stack
@@ -49,7 +53,7 @@ Part1:
   ldy #0
   lda ($00),y                   ; Load next operation into accumulator
   sta operation                 ; Store operation
-  beq ProgramComplete           ; If end of input, complete program
+  beq EndOfInput                ; If end of input, complete program
 
   SkipNonNumbers:
   jsr IncMemory
@@ -77,11 +81,6 @@ Part1:
   lda #0
   adc number                    ; Increment MSD if carry bit set
   jmp GetNumbers                ; Get the next number
-
-Infinite:
-  jmp Infinite
-ProgramComplete:
-  jmp ProgramComplete
 
 IncMemory:
   inc memory                    ; Increment the memory pointer
@@ -132,6 +131,9 @@ MultiplyBy10:
 
   rts                           ; Return from subroutine
 
+EndOfInput:
+  jmp CalculateAnswer
+
 PerformOperation:
   lda operation
   cmp down                      ; If operation was down,
@@ -176,10 +178,42 @@ PerformOperation:
   jsr IncMemory
   jmp GetNextDirection
 
+CalculateAnswer:
+  ; Y = iterator MSD
+  ; X = iterator LSD
+
+  ldy distance                  ; Store distance MSD in Y
+  ldx distance + 1              ; Store distance LSD in X
+
+  iny                           ; Increment Y (for final beq check)
+
+  WhileX:
+  clc
+  lda depth + 1                 ; Add depth LSD to finalAnswer LSD
+  adc finalAnswer + 2
+  sta finalAnswer + 2
+  lda depth                     ; Add depth MSD to finalAnswer SD (with carry)
+  adc finalAnswer + 1
+  sta finalAnswer + 1
+  lda #0                        ; Add #0 to finalAnswer MSD (with carry)
+  adc finalAnswer
+  sta finalAnswer
+  dex                           ; Decrement iterator LSD
+  bne WhileX                    ; If X is not zero, continue loop
+
+  dey                           ; Decrement iterator MSD
+  beq ProgramComplete           ; If iterator MSD is zero, total is calculated
+  jmp WhileX                    ; Continue addition
+
+Infinite:
+  jmp Infinite
+ProgramComplete:
+  jmp ProgramComplete
+
 
 IRQ:
   rti
 
   org $3000
-  incbin "roms/aoc2021/02/ins1.raw"
-  ;incbin "roms/aoc2021/02/in.raw"
+  ;incbin "roms/aoc2021/02/ins1.raw"
+  incbin "roms/aoc2021/02/in.raw"
